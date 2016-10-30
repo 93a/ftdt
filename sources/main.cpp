@@ -18,6 +18,8 @@ using std::cout;
 using std::endl;
 using std::ofstream;
 const double imp0 = 377.0;
+const double LOSS = 0.01;
+
 int SIZE = 200;
 int TIME =250;
 const int VISUALIZATION_FREQUENCY = 5;
@@ -33,7 +35,7 @@ inline void mySleep(unsigned millisec) {
 void make_png();
 void make_gif(); 
 int main(int argc, char** argv) {
-		std::cout << "You must pass SIZE and TIME as arguments" << std::endl;
+	std::cout << "You must pass SIZE and TIME as arguments" << std::endl;
 	if (argc != 3) {
 		std::cout << "You didn't. So they set on defaults." << std::endl;
 		std::cout << "SIZE " << SIZE << " TIME " << TIME <<std::endl;
@@ -41,17 +43,25 @@ int main(int argc, char** argv) {
 		SIZE = atoi(argv[1]);
 		TIME = atoi(argv[2]);
 	}
+
+
 	vector<double> ez(SIZE), hy(SIZE -1);
 	vector<double> eps(SIZE), mu(SIZE -1);
-	for (int i=0; i < 100; i++)
-		eps[i] = 1.0;
-	for (int i =100; i < SIZE; i++) 
-		eps[i] = 9.0;
+	vector<double> ceze(SIZE), cezh(SIZE);
+
+	for (int i=0; i < 100; i++) {
+		ceze[i] = 1.0;
+		cezh[i] = imp0;
+	}
+	for (int i =100; i < SIZE; i++) {
+		ceze[i] = (1.0 - LOSS) / (1.0 + LOSS);
+		cezh[i] = imp0 / 9.0 / (1.0 + LOSS);
+	}
 
 	char* buff = (char*) malloc(512*sizeof(char));
 	Gnuplot gp;
 	for (int qTime = 0; qTime < TIME; qTime++) {
-		
+
 		// ABC
 		for (int i=0; i < SIZE - 1; i++) {
 			hy[i] = hy[i] + (ez[i+1] - ez[i]) / imp0;
@@ -64,21 +74,22 @@ int main(int argc, char** argv) {
 		// ABC
 		ez[0] = ez[1];
 		/* Next ABC will results in reflaction
-		* because its realization suggests that wave propagates
-		* with speed of 1 dx/dt, but while it is not free space it is not so.
-		* Thus reflation emerge. We will comment this line.
-		* So that there would be a perfect electic conductor. */
+		 * because its realization suggests that wave propagates
+		 * with speed of 1 dx/dt, but while it is not free space it is not so.
+		 * Thus reflation emerge. We will comment this line.
+		 * So that there would be a perfect electic conductor. */
 		//ez[SIZE-1] = ez[SIZE-2]; 
 
+		/* Update electric field
+		 * and save max and min for gnuplot */
 		for (int i=1; i < SIZE; i++) {
-			ez[i] = ez[i] + (hy[i] - hy[i-1]) * imp0 / eps[i];
+			ez[i] = ceze[i] * ez[i] + cezh[i] *  (hy[i] - hy[i-1]);
 			max_ez = (ez[i] > max_ez) ? ez[i] : max_ez; 
 			min_ez = (ez[i] < min_ez) ? ez[i] : min_ez;
 		}
 		/* correction for Ez adjacent to TFSF boundary */
 		ez[50] += exp(-(qTime + 0.5 - (-0.5) - 30.) *
 				(qTime + 0.5 - (-0.5) - 30.) / 100.);
-		/* ABC realization */
 
 		if ( qTime%VISUALIZATION_FREQUENCY == 0) {
 			sprintf(buff,  "results/tdat/ez/ez_%d.tdat", qTime);
