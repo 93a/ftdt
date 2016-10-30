@@ -70,8 +70,8 @@ int main(int argc, char** argv) {
         }
 
     }
-    make_png();
-    make_gif();
+    //make_png();
+    //make_gif();
     cout << "max_ez: " << max_ez<< endl;
     cout << "min_ez: " << min_ez << endl;
     cout << "max hy: " << max_hy << endl;
