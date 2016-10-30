@@ -41,16 +41,20 @@ int main(int argc, char** argv) {
 		SIZE = atoi(argv[1]);
 		TIME = atoi(argv[2]);
 	}
-	vector<double> ez(SIZE), hy(SIZE);
-	vector<double> eps(SIZE), mu(SIZE);
+	vector<double> ez(SIZE), hy(SIZE -1);
+	vector<double> eps(SIZE), mu(SIZE -1);
+	for (int i=0; i < 100; i++)
+		eps[i] = 1.0;
+	for (int i =100; i < SIZE; i++) 
+		eps[i] = 9.0;
+
 	char* buff = (char*) malloc(512*sizeof(char));
 	Gnuplot gp;
 	for (int qTime = 0; qTime < TIME; qTime++) {
 		
 		// ABC
-		hy[SIZE-1] = hy[SIZE - 2];
 		for (int i=0; i < SIZE - 1; i++) {
-			hy[i] = hy[i] + (ez[i+1] - ez[i]) / imp0 /mu[i];
+			hy[i] = hy[i] + (ez[i+1] - ez[i]) / imp0;
 			max_hy = hy[i] > max_hy ? hy[i] : max_hy;
 			min_hy = hy[i] < min_hy ? hy[i] : min_hy;
 		}
@@ -59,6 +63,13 @@ int main(int argc, char** argv) {
 		hy[49] -= exp(-(qTime - 30.) * (qTime - 30.) / 100.) / imp0;
 		// ABC
 		ez[0] = ez[1];
+		/* Next ABC will results in reflaction
+		* because its realization suggests that wave propagates
+		* with speed of 1 dx/dt, but while it is not free space it is not so.
+		* Thus reflation emerge. We will comment this line.
+		* So that there would be a perfect electic conductor. */
+		//ez[SIZE-1] = ez[SIZE-2]; 
+
 		for (int i=1; i < SIZE; i++) {
 			ez[i] = ez[i] + (hy[i] - hy[i-1]) * imp0 / eps[i];
 			max_ez = (ez[i] > max_ez) ? ez[i] : max_ez; 
