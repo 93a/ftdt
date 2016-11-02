@@ -18,7 +18,7 @@ using std::cout;
 using std::endl;
 using std::ofstream;
 const double imp0 = 377.0;
-const double LOSS = 0.01;
+const double LOSS = 0.005;
 
 int SIZE = 200;
 int TIME =250;
