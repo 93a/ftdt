@@ -9,15 +9,18 @@ class Field {
 	private:
 		int Nx;
 		int Ny;
-		std::vector<float> field;
+		std::vector<double> field;
 	public:
 		Field() {}
 		Field(int x, int y) : Nx(x), Ny(y) {
 			field.reserve(Nx*Ny);
 		}
 
-		float& operator()(int x, int y) {
+		double& operator()(int x, int y) {
 			return field[x*Nx + y];
+		}
+		double& operator()(int x) {
+			return field[x];
 		}
 		void printf(char* path) {
 			std::ofstream os(path);

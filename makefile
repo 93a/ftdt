@@ -42,5 +42,4 @@ objects/%.o: sources/%.cpp $(HEADERS)
 clean:
 	rm -f objects/*.o objects/*.d objects/*/*.o objects/*/*.d bin/app
 rclean:
-	rm -f results/tdat/*/*.tdat results/png/*/*.png
-
+	rm -f results/tdat/*/*.tdat results/png/*/*.png results/bindat/*/*.bin

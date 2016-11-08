@@ -1,55 +1,118 @@
 #ifndef GRID_HPP
 #define GRID_HPP
 
-#include <utility>
-#include <vector>
-#include <string>
 #include <iostream>
+#include <cmath>
+#include "Field.hpp"
+#include "gnuplot-iostream.h"
+enum class field_enumeration  {Ex_enum, Ey_enum, Ez_enum, Hx_enum, Hy_enum, Hz_enum};
 
+/* 
+ * This class supposed to be a 2d grid for FDTD computations
+ */
 class Grid {
 	private:
-		std::pair<float, float> physical_start;
-		std::pair<float, float> physical_end;
-		std::pair<float, float> physical_size;
-		std::pair<int, int> segmantation;
-		std::pair<float, float> delta_steps;
-		std::vector<std::tuple<float, float, float> > H_field;
-		std::vector<std::tuple<float, float, float> > E_field;
-		std::string description;
+		Field Ex;
+		Field Ey;
+		Field Hz;
+
+		Field Ez;
+		Field Hx;
+		Field Hy;
+
+		Field TMz_CEx;	
+		Field TMz_CEy;
+		Field TMz_CHz;
+
+		Field TEz_CHx;					
+		Field TEz_CHy;
+		Field TEz_CEz;
+
+		Field eps;
+		Field mu;
+
+		double dx;
+		double dy;
+		double dt;
+		double end_x;
+		double end_y;
+		double end_time;
+		int Nx;
+		int Ny;
+		int Nt;
+		int qTime;										// current time step
+
+		double min_wave_lenght;
+		double max_interested_frequency;				// Ever frequncy higher that this will be filtered my mesh
+		const double poitnts_per_wave = 15;
+
+		int visualization_frequency = 5;
+		/* minmax of All field {{{
+		 * Required for visualization bu Gnuplot
+		 * later would be passed to it.
+		 * Gnuplot sets with it cbrange later
+		 */
+		double min_ex = 0;
+		double min_ey = 0;
+		double min_ez = 0;
+		double min_hx = 0;
+		double min_hy = 0;
+		double min_hz = 0;
+		double max_ex = 0;
+		double max_ey = 0;
+		double max_ez = 0;
+		double max_hx = 0;
+		double max_hy = 0;
+		double max_hz = 0;
+		// }}}
+
+		std::vector<std::string> log;
+		std::vector<float> source_graph;
+		void init_min_wave_lenght();
+		void init();
+		void update_curl();
+		void time_iter();
 	protected:
+		void binary_snapshot(field_enumeration field, int t);
+		void wdata_bin(const char *fname, const double *data, const uint row, const uint col);
 	public:
-		Grid() {
-		description = "Default Constructor has made this. Shoud be done futher initiazation";}
-		Grid(std::pair<float,float> start, 
-				std::pair<float, float>  size,
-				std::pair<int, int> segments,
-				std::string des ) : description(des) {
-			physical_start = start;
-			physical_size = size;
-			physical_end.first = start.first + size.first;
-			physical_end.first = start.second + size.second;
-			delta_steps.first = size.first / segments.first;
-			delta_steps.second = size.second / segments.second;
-			segmantation = segments;
+
+		/*** Just a sin source {{{
+		*/
+		inline double source_sin(double t) {
+			return sin((2*M_PI) * max_interested_frequency * t);
+		}
+		double source_sin(int step){
+			return sin((2*M_PI) * max_interested_frequency * step * dt); 
+		}
+		inline double source_sin(double t, double freq) {
+			return sin((2*M_PI) * freq * t); 
+		}
+		inline double source_sin(int step, double freq) {
+			return sin((2*M_PI) * freq * step * dt); 
+		} 
+		/* }}} */
+
+		/* constants  {{{
+		 */
+		const double speed_of_light = 299792458;
+		const double eps0 = 8.854187817e-12;
+		const double mu0 = 1.256637061e-6;
+		const double imp0 = sqrt(mu0/eps0);
+		const double impedance0 = 376.730313461;
+		const double courant_number = 1/sqrt(2);
+		/* }}} */
+		void print_info();
+
+		int start();
+		void make_png();
+		void make_gif();
+		Grid();
+		~Grid() {
+			Gnuplot gp;
+			gp << "plot '-' with lines notitle\n";
+			gp.send1d(source_graph);
 		}
 
-		void print_info() {
-			std::cout << "Printing information about Grid object" << std::endl;
-			std::cout << description << std::endl;
-			std::cout << "Start at (" << physical_start.first << "," << physical_start.second << ")" << std::endl;
-			std::cout << "End at (" << physical_end.first <<"," <<physical_end.second <<")" << std::endl;
-			std::cout << "Size is (" << physical_size.first <<"," <<physical_size.second <<")" << std::endl;
-			std::cout << "Segmnatation is (" << segmantation.first <<"," <<segmantation.second <<")"  << std::endl;
-			std::cout << "Delta steps is (" << delta_steps.first <<"," <<delta_steps.second <<")" << std::endl;
-		}
-		std::vector<std::tuple<float, float, float> > get_E_field() {
-			return E_field;}
-		std::vector<std::tuple<float, float, float> > get_H_field() {
-			return H_field;}
-		std::pair< std::tuple<float, float, float>, std::tuple<float, float, float> > get_snapshot() {
-			return std::make_pair( E_field, H_field);
-		}
-		~Grid() {}
 };
-
 #endif
