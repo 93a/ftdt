@@ -14,7 +14,7 @@ void Grid::print_info() {
 	std::cout << "This grid assumed to be 2d with incorporation of TMz and TEz modes" << std::endl;
 	std::cout << "Maximun wave frequency that grid implements is: " << max_interested_frequency << std::endl;
 	std::cout << "\twith wave length at free space " << speed_of_light / max_interested_frequency  << std::endl;
-	std::cout << "\tmin length at grid with " << min_wave_lenght << std::endl;
+	std::cout << "\tmin length at grid with " << min_wave_length << std::endl;
 	std::cout << "Dots per wave: " << poitnts_per_wave <<std::endl;
 	std::cout << "dx and dy chosen to ensure dots per wave" << std::endl;
 	std::cout << "dx: " << dx <<std::endl;
@@ -84,8 +84,8 @@ void Grid::init() {
 	}
 	/*}}}*/
 
-	init_min_wave_lenght();
-	dx =		min_wave_lenght / poitnts_per_wave;
+	init_min_wave_length();
+	dx =		min_wave_length / poitnts_per_wave;
 	dy =		dx;
 	dt =		dx/speed_of_light;
 	end_x =		dx * Nx;
@@ -94,13 +94,13 @@ void Grid::init() {
 }/*}}}*/
 
 
-/*** init_min_wave_lenght() {{{ 
+/** init_min_wave_length() {{{ 
  * Scroll all the grid and find maximum eps*mu of the material
- * there will be a wave with minimum lenght
- * compute and sets it
+ * there will be a wave with minimum length
+ * compute and define @var min_wave_length;
  * pushes result to the log
  */
-void Grid::init_min_wave_lenght() {
+void Grid::init_min_wave_length() {
 
 	//for propper logging
 	char* buff = (char*) malloc(sizeof(char) * 512);
@@ -115,9 +115,9 @@ void Grid::init_min_wave_lenght() {
 			position = i;
 		}
 	}
-	min_wave_lenght = speed_of_light / sqrt(max) / max_interested_frequency;
+	min_wave_length = speed_of_light / sqrt(max) / max_interested_frequency;
 	sprintf(buff, "\tMin wave leght of %g will be at node (%d,%d) where (eps,mu)=(%g,%g)", 
-			min_wave_lenght, position/Nx, position%Nx, eps(position), mu(position));
+			min_wave_length, position/Nx, position%Nx, eps(position), mu(position));
 	log.push_back(buff);
 }
 /*}}}*/
@@ -180,11 +180,8 @@ void Grid::wdata_bin(const char *fname, const double *data, const uint row, cons
 int Grid::start() {
 	for (qTime=0; qTime < Nt; qTime++) {
 		time_iter();
-		if (!(qTime % visualization_frequency)) {
-			binary_snapshot(field_enumeration::Ez_enum,qTime);
-			
-		}
-		
+		 (!(qTime % visualization_frequency)) ? 
+			binary_snapshot(field_enumeration::Ez_enum,qTime) : ;
 	}
 	return 0;
 }
@@ -194,17 +191,21 @@ void Grid::time_iter() {
 		for (int j=1; j<Ny-1; j++) {
 			Hx(i,j) = Hx(i,j) - (1 / sqrt(2)) * (Ez(i,j+1) - Ez(i,j)) / imp0;
 			Hy(i,j) = Hy(i,j) + (1/sqrt(2)) * (Ez(i+1,j) - Ez(i,j)) / imp0;
+			min_hx = (Hx(i,j) < min_hx) ? Hx(i,j) : min_hx;	
+			min_hy = (Hy(i,j) < min_hy) ? Hy(i,j) : min_hy;	
+			max_hx = (Hx(i,j) > max_hx) ? Hx(i,j) : max_hx;	
+			max_hy = (Hy(i,j) > max_hy) ? Hy(i,j) : max_hy;	
 		}
 	}
 	for (int i=1; i<Nx-1; i++) { 
 		for (int j=1; j<Ny-1; j++) {
 			Ez(i,j) = Ez(i,j) + (1/sqrt(2)) *  imp0 * ( (Hy(i,j) - Hy(i-1,j)) - (Hx(i,j) - Hx(i,j-1)));
-		//	std::cout << Ez(i,j);
+			min_ez = (Ez(i,j) < min_ez) ? Ez(i,j) : min_ez;	
+			max_ez = (Ez(i,j) > max_ez) ? Ez(i,j) : max_ez ;	
 		}
-		//  std::cout <<   std::endl;
 	}
-	Ez(Nx/4,Ny/4) = source_sin(qTime, max_interested_frequency/4);
-	Ez(Nx/4*3,Ny/4*3) = - source_sin(qTime, max_interested_frequency/4);
+	Ez(Nx/4,Ny/4) += source_sin(qTime, max_interested_frequency/4);
+	Ez(Nx/4*3,Ny/4*3) += - source_sin(qTime, max_interested_frequency/4);
 	source_graph.push_back(source_sin(qTime, max_interested_frequency/4));	
 }
 
@@ -243,7 +244,6 @@ void Grid::make_png() {
 	std::cout << "Making ez pngs" << std::endl;
 
 	for (int i=0; i < Nt; i+=visualization_frequency) {
-		std::cout << i << std::endl;
 		sprintf(buff,"set output \"results/png/ez/ez_%d.png\"\n", i);
 		gp << buff;
 		sprintf(buff, "splot 'results/bindat/ez/ez_%d.bin' binary matrix notitle with lines\n",i);

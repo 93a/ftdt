@@ -42,15 +42,16 @@ class Grid {
 		int Nt;
 		int qTime;										// current time step
 
-		double min_wave_lenght;
-		double max_interested_frequency;				// Ever frequncy higher that this will be filtered my mesh
-		const double poitnts_per_wave = 15;
+		double min_wave_length;							// minimum wave length that wil ever occur during simulation
+		double max_interested_frequency;				// Ever frequency higher this will be filtered my mesh
+		const double poitnts_per_wave = 15;				// used to define dx,dy
 
-		int visualization_frequency = 5;
+		int visualization_frequency = 5;				// Frequency of snapshots
+
 		/* minmax of All field {{{
 		 * Required for visualization bu Gnuplot
 		 * later would be passed to it.
-		 * Gnuplot sets with it cbrange later
+		 * Gnuplot sets with it cbrange and zrange later
 		 */
 		double min_ex = 0;
 		double min_ey = 0;
@@ -66,15 +67,34 @@ class Grid {
 		double max_hz = 0;
 		// }}}
 
+		/** log of simulation where messages will be placed
+		 * Will be displayed after end
+		 */
 		std::vector<std::string> log;
 		std::vector<float> source_graph;
-		void init_min_wave_lenght();
+		void init_min_wave_length();
 		void init();
 		void update_curl();
 		void time_iter();
 	protected:
-		void binary_snapshot(field_enumeration field, int t);
+		/**
+		 * Method writes a binary snapshot of selected by @param fileld_enumeration field
+		 * that later will be used by gnuplot for 'binary matrix' plotting.
+		 * see gnuplot help about 'binary' and 'binary matrix'
+		 "The `binary matrix` format contains a two dimensional array of 32 bit IEEE
+		 float values plus an additional column and row of coordinate values.  In the
+		 `using` specifier of a plot command, column 1 refers to the matrix row
+		 coordinate, column 2 refers to the matrix column coordinate, and column 3
+		 refers to the value stored in the array at those coordinates." -- from that help.
+		 * @param int stept used to name file corresponding file properly,
+		 */
+		void binary_snapshot(field_enumeration field, int step);
+		/* submethod of @method void binary_snapshot(field_enumeration field, int step)
+		 * that just writes binary data to file that will suit mentioned above format
+		 */
 		void wdata_bin(const char *fname, const double *data, const uint row, const uint col);
+
+
 	public:
 
 		/*** Just a sin source {{{
@@ -94,7 +114,7 @@ class Grid {
 		/* }}} */
 
 		/* constants  {{{
-		 */
+		*/
 		const double speed_of_light = 299792458;
 		const double eps0 = 8.854187817e-12;
 		const double mu0 = 1.256637061e-6;
@@ -103,16 +123,9 @@ class Grid {
 		const double courant_number = 1/sqrt(2);
 		/* }}} */
 		void print_info();
-
 		int start();
 		void make_png();
 		void make_gif();
 		Grid();
-		~Grid() {
-			Gnuplot gp;
-			gp << "plot '-' with lines notitle\n";
-			gp.send1d(source_graph);
-		}
-
 };
 #endif
